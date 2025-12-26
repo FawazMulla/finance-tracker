@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Statistics - Finance Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- Essential Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
+    
+    <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#6366f1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <button id="back-btn" class="icon-btn" aria-label="Go back">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <h1 class="logo-text">Statistics</h1>
+                </div>
+                
+                <div class="header-actions">
+                    <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">
+                        <svg class="theme-icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <svg class="theme-icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                    
+                    <div id="connection-status" class="connection-status online">
+                        <div class="status-dot"></div>
+                        <span class="status-text">Online</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Time Period Selector -->
+            <section class="period-selector">
+                <div class="period-tabs">
+                    <button class="period-tab active" data-period="week">Week</button>
+                    <button class="period-tab" data-period="month">Month</button>
+                    <button class="period-tab" data-period="year">Year</button>
+                    <button class="period-tab" data-period="all">All Time</button>
+                </div>
+            </section>
+
+            <!-- Key Metrics -->
+            <section class="metrics-section">
+                <div class="metrics-grid">
+                    <div class="metric-card balance">
+                        <div class="metric-icon">💰</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Current Balance</div>
+                            <div class="metric-value" id="current-balance">₹0</div>
+                            <div class="metric-change" id="balance-change">+₹0 this period</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card income">
+                        <div class="metric-icon">📈</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Total Income</div>
+                            <div class="metric-value" id="total-income">₹0</div>
+                            <div class="metric-change" id="income-change">+₹0 this period</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card expense">
+                        <div class="metric-icon">📉</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Total Expenses</div>
+                            <div class="metric-value" id="total-expenses">₹0</div>
+                            <div class="metric-change" id="expense-change">-₹0 this period</div>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-card transactions">
+                        <div class="metric-icon">📊</div>
+                        <div class="metric-content">
+                            <div class="metric-label">Transactions</div>
+                            <div class="metric-value" id="transaction-count">0</div>
+                            <div class="metric-change" id="transaction-change">0 this period</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Charts Section -->
+            <section class="charts-section">
+                <!-- Balance Trend Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Balance Trend</h3>
+                        <div class="chart-legend">
+                            <span class="legend-item income">
+                                <span class="legend-dot"></span>
+                                Income
+                            </span>
+                            <span class="legend-item expense">
+                                <span class="legend-dot"></span>
+                                Expenses
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="balanceChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Income vs Expenses Pie Chart -->
+                <div class="chart-card">
+                    <div class="chart-header">
+                        <h3>Income vs Expenses</h3>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="pieChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Monthly Comparison -->
+                <div class="chart-card full-width">
+                    <div class="chart-header">
+                        <h3>Monthly Comparison</h3>
+                        <div class="chart-controls">
+                            <select id="comparison-year" class="chart-select">
+                                <option value="2024">2024</option>
+                                <option value="2023">2023</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="monthlyChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Insights Section -->
+            <section class="insights-section">
+                <h3>Financial Insights</h3>
+                <div class="insights-grid" id="insights-container">
+                    <!-- Insights will be dynamically generated -->
+                </div>
+            </section>
+
+            <!-- Top Categories -->
+            <section class="categories-section">
+                <h3>Spending Analysis</h3>
+                <div class="categories-list" id="categories-list">
+                    <!-- Categories will be dynamically generated -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay" style="display: none;">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <p>Analyzing your data...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span>Home</span>
+            </a>
+            
+            <a href="history.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4"></path>
+                    <polyline points="9 11 12 14 15 11"></polyline>
+                    <line x1="12" y1="2" x2="12" y2="14"></line>
+                </svg>
+                <span>History</span>
+            </a>
+            
+            <a href="stats.html" class="nav-item active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <span>Stats</span>
+            </a>
+        </nav>
+    </div>
+
+    <script type="module">
+        import { loadData, onLoadingChange } from "./app.js";
+
+        // DOM Elements
+        const loadingOverlay = document.getElementById("loading-overlay");
+        const connectionStatus = document.getElementById("connection-status");
+        const themeToggle = document.getElementById("theme-toggle");
+        const backBtn = document.getElementById("back-btn");
+        const periodTabs = document.querySelectorAll('.period-tab');
+        const comparisonYear = document.getElementById('comparison-year');
+
+        // Chart instances
+        let balanceChart, pieChart, monthlyChart;
+        
+        // Data
+        let allTransactions = [];
+        let currentPeriod = 'week';
+
+        // Theme Management - Default to dark mode
+        const theme = localStorage.getItem('theme') || 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            
+            // Update charts with new theme
+            updateChartsTheme();
+        });
+
+        // Navigation
+        backBtn.addEventListener('click', () => {
+            window.history.back();
+        });
+
+        // Loading state management
+        onLoadingChange((loading) => {
+            loadingOverlay.style.display = loading ? 'flex' : 'none';
+        });
+
+        // Connection status
+        function updateConnectionStatus() {
+            const isOnline = navigator.onLine;
+            connectionStatus.className = `connection-status ${isOnline ? 'online' : 'offline'}`;
+            connectionStatus.querySelector('.status-text').textContent = isOnline ? 'Online' : 'Offline';
+        }
+
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        updateConnectionStatus();
+
+        // Period tab handling
+        periodTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                periodTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentPeriod = tab.dataset.period;
+                updateStats();
+            });
+        });
+
+        // Year selector
+        comparisonYear.addEventListener('change', updateMonthlyChart);
+
+        // Initialize charts
+        function initializeCharts() {
+            const isDark = document.documentElement.getAttribute('data-theme') !== 'light'; // Default to dark
+            const textColor = isDark ? '#f8fafc' : '#0f172a';
+            const gridColor = isDark ? '#475569' : '#e2e8f0';
+
+            // Common responsive options
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                elements: {
+                    point: {
+                        radius: window.innerWidth < 480 ? 2 : 3,
+                        hoverRadius: window.innerWidth < 480 ? 4 : 6
+                    }
+                }
+            };
+
+            // Balance Trend Chart
+            const balanceCtx = document.getElementById('balanceChart').getContext('2d');
+            balanceChart = new Chart(balanceCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'Balance',
+                        data: [],
+                        borderColor: '#6366f1',
+                        backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                        tension: 0.4,
+                        fill: true,
+                        borderWidth: window.innerWidth < 480 ? 2 : 3
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#334155' : '#ffffff',
+                            titleColor: textColor,
+                            bodyColor: textColor,
+                            borderColor: gridColor,
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            displayColors: false,
+                            callbacks: {
+                                label: function(context) {
+                                    return '₹' + context.parsed.y.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    size: window.innerWidth < 480 ? 10 : 12
+                                },
+                                callback: function(value) {
+                                    return '₹' + value.toLocaleString();
+                                },
+                                maxTicksLimit: window.innerWidth < 480 ? 5 : 8
+                            },
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    size: window.innerWidth < 480 ? 10 : 12
+                                },
+                                maxTicksLimit: window.innerWidth < 480 ? 4 : 7,
+                                maxRotation: window.innerWidth < 480 ? 45 : 0
+                            },
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Pie Chart
+            const pieCtx = document.getElementById('pieChart').getContext('2d');
+            pieChart = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Income', 'Expenses'],
+                    datasets: [{
+                        data: [0, 0],
+                        backgroundColor: ['#10b981', '#ef4444'],
+                        borderWidth: 0,
+                        cutout: window.innerWidth < 480 ? '60%' : '70%'
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#334155' : '#ffffff',
+                            titleColor: textColor,
+                            bodyColor: textColor,
+                            borderColor: gridColor,
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ₹' + context.parsed.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Monthly Chart
+            const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+            monthlyChart = new Chart(monthlyCtx, {
+                type: 'bar',
+                data: {
+                    labels: window.innerWidth < 480 ? 
+                        ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'] :
+                        ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+                    datasets: [{
+                        label: 'Income',
+                        data: [],
+                        backgroundColor: '#10b981',
+                        borderRadius: 4,
+                        maxBarThickness: window.innerWidth < 480 ? 20 : 40
+                    }, {
+                        label: 'Expenses',
+                        data: [],
+                        backgroundColor: '#ef4444',
+                        borderRadius: 4,
+                        maxBarThickness: window.innerWidth < 480 ? 20 : 40
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: textColor,
+                                font: {
+                                    size: window.innerWidth < 480 ? 11 : 12
+                                },
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#334155' : '#ffffff',
+                            titleColor: textColor,
+                            bodyColor: textColor,
+                            borderColor: gridColor,
+                            borderWidth: 1,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ₹' + Math.abs(context.parsed.y).toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    size: window.innerWidth < 480 ? 10 : 12
+                                },
+                                callback: function(value) {
+                                    return '₹' + Math.abs(value).toLocaleString();
+                                },
+                                maxTicksLimit: window.innerWidth < 480 ? 5 : 8
+                            },
+                            grid: {
+                                color: gridColor,
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: textColor,
+                                font: {
+                                    size: window.innerWidth < 480 ? 10 : 12
+                                }
+                            },
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartsTheme() {
+            const isDark = document.documentElement.getAttribute('data-theme') !== 'light'; // Default to dark
+            const textColor = isDark ? '#f8fafc' : '#0f172a';
+            const gridColor = isDark ? '#475569' : '#e2e8f0';
+
+            [balanceChart, monthlyChart].forEach(chart => {
+                if (chart) {
+                    chart.options.scales.x.ticks.color = textColor;
+                    chart.options.scales.y.ticks.color = textColor;
+                    chart.options.scales.x.grid.color = gridColor;
+                    chart.options.scales.y.grid.color = gridColor;
+                    if (chart.options.plugins.legend) {
+                        chart.options.plugins.legend.labels.color = textColor;
+                    }
+                    chart.update();
+                }
+            });
+        }
+
+        async function loadTransactions() {
+            try {
+                allTransactions = await loadData();
+                allTransactions.sort((a, b) => new Date(a.date) - new Date(b.date));
+                updateStats();
+            } catch (error) {
+                console.error('Error loading transactions:', error);
+                showToast('Failed to load transaction data', 'error');
+            }
+        }
+
+        function getFilteredTransactions() {
+            const now = new Date();
+            let startDate;
+
+            switch (currentPeriod) {
+                case 'week':
+                    startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    break;
+                case 'month':
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    break;
+                case 'year':
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    break;
+                default:
+                    return allTransactions;
+            }
+
+            return allTransactions.filter(tx => new Date(tx.date) >= startDate);
+        }
+
+        function updateStats() {
+            const filteredTransactions = getFilteredTransactions();
+            
+            updateMetrics(filteredTransactions);
+            updateBalanceChart(filteredTransactions);
+            updatePieChart(filteredTransactions);
+            updateMonthlyChart();
+            updateInsights(filteredTransactions);
+            updateCategories(filteredTransactions);
+        }
+
+        function updateMetrics(transactions) {
+            const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+            const totalExpenses = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+            const currentBalance = allTransactions.reduce((sum, t) => sum + t.amount, 0);
+
+            document.getElementById('current-balance').textContent = `₹${currentBalance.toLocaleString()}`;
+            document.getElementById('total-income').textContent = `₹${totalIncome.toLocaleString()}`;
+            document.getElementById('total-expenses').textContent = `₹${totalExpenses.toLocaleString()}`;
+            document.getElementById('transaction-count').textContent = transactions.length;
+
+            // Update change indicators
+            const balanceChange = totalIncome - totalExpenses;
+            document.getElementById('balance-change').textContent = `${balanceChange >= 0 ? '+' : ''}₹${balanceChange.toLocaleString()} this ${currentPeriod}`;
+            document.getElementById('income-change').textContent = `+₹${totalIncome.toLocaleString()} this ${currentPeriod}`;
+            document.getElementById('expense-change').textContent = `-₹${totalExpenses.toLocaleString()} this ${currentPeriod}`;
+            document.getElementById('transaction-change').textContent = `${transactions.length} this ${currentPeriod}`;
+        }
+
+        function updateBalanceChart(transactions) {
+            const dailyBalances = {};
+            let runningBalance = 0;
+
+            // Calculate daily balances
+            allTransactions.forEach(tx => {
+                const date = new Date(tx.date).toDateString();
+                if (!dailyBalances[date]) {
+                    dailyBalances[date] = runningBalance;
+                }
+                runningBalance += tx.amount;
+                dailyBalances[date] = runningBalance;
+            });
+
+            const sortedDates = Object.keys(dailyBalances).sort((a, b) => new Date(a) - new Date(b));
+            const labels = sortedDates.slice(-30).map(date => new Date(date).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' }));
+            const data = sortedDates.slice(-30).map(date => dailyBalances[date]);
+
+            balanceChart.data.labels = labels;
+            balanceChart.data.datasets[0].data = data;
+            balanceChart.update();
+        }
+
+        function updatePieChart(transactions) {
+            const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+            const totalExpenses = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+            pieChart.data.datasets[0].data = [totalIncome, totalExpenses];
+            pieChart.update();
+        }
+
+        function updateMonthlyChart() {
+            const year = parseInt(comparisonYear.value);
+            const monthlyData = Array(12).fill(0).map(() => ({ income: 0, expenses: 0 }));
+
+            allTransactions.forEach(tx => {
+                const date = new Date(tx.date);
+                if (date.getFullYear() === year) {
+                    const month = date.getMonth();
+                    if (tx.amount > 0) {
+                        monthlyData[month].income += tx.amount;
+                    } else {
+                        monthlyData[month].expenses += Math.abs(tx.amount);
+                    }
+                }
+            });
+
+            monthlyChart.data.datasets[0].data = monthlyData.map(d => d.income);
+            monthlyChart.data.datasets[1].data = monthlyData.map(d => -d.expenses);
+            monthlyChart.update();
+        }
+
+        function updateInsights(transactions) {
+            const insights = generateInsights(transactions);
+            const container = document.getElementById('insights-container');
+            
+            container.innerHTML = insights.map(insight => `
+                <div class="insight-card ${insight.type}">
+                    <div class="insight-icon">${insight.icon}</div>
+                    <div class="insight-content">
+                        <div class="insight-title">${insight.title}</div>
+                        <div class="insight-description">${insight.description}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function generateInsights(transactions) {
+            const insights = [];
+            const totalIncome = transactions.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0);
+            const totalExpenses = transactions.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0);
+            const avgTransaction = transactions.length > 0 ? (totalIncome + totalExpenses) / transactions.length : 0;
+
+            // Savings rate
+            if (totalIncome > 0) {
+                const savingsRate = ((totalIncome - totalExpenses) / totalIncome * 100);
+                insights.push({
+                    type: savingsRate > 20 ? 'positive' : savingsRate > 0 ? 'neutral' : 'negative',
+                    icon: savingsRate > 20 ? '🎯' : savingsRate > 0 ? '💡' : '⚠️',
+                    title: `${savingsRate.toFixed(1)}% Savings Rate`,
+                    description: savingsRate > 20 ? 'Excellent! You\'re saving well.' : savingsRate > 0 ? 'Good progress on savings.' : 'Consider reducing expenses.'
+                });
+            }
+
+            // Transaction frequency
+            if (transactions.length > 0) {
+                const daysWithTransactions = new Set(transactions.map(t => new Date(t.date).toDateString())).size;
+                const frequency = transactions.length / Math.max(daysWithTransactions, 1);
+                insights.push({
+                    type: 'neutral',
+                    icon: '📊',
+                    title: `${frequency.toFixed(1)} transactions per day`,
+                    description: `You made ${transactions.length} transactions across ${daysWithTransactions} days.`
+                });
+            }
+
+            // Average transaction
+            if (avgTransaction > 0) {
+                insights.push({
+                    type: 'neutral',
+                    icon: '💰',
+                    title: `₹${avgTransaction.toFixed(0)} average transaction`,
+                    description: 'This is your average transaction amount.'
+                });
+            }
+
+            return insights;
+        }
+
+        function updateCategories(transactions) {
+            // Simple category analysis based on transaction notes
+            const categories = {};
+            
+            transactions.filter(t => t.amount < 0).forEach(tx => {
+                const note = tx.note.toLowerCase();
+                let category = 'Other';
+                
+                if (note.includes('food') || note.includes('restaurant') || note.includes('meal')) category = 'Food';
+                else if (note.includes('transport') || note.includes('uber') || note.includes('taxi')) category = 'Transport';
+                else if (note.includes('shopping') || note.includes('clothes') || note.includes('buy')) category = 'Shopping';
+                else if (note.includes('bill') || note.includes('electricity') || note.includes('water')) category = 'Bills';
+                else if (note.includes('entertainment') || note.includes('movie') || note.includes('game')) category = 'Entertainment';
+                
+                if (!categories[category]) categories[category] = 0;
+                categories[category] += Math.abs(tx.amount);
+            });
+
+            const sortedCategories = Object.entries(categories)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 5);
+
+            const container = document.getElementById('categories-list');
+            container.innerHTML = sortedCategories.map(([category, amount]) => `
+                <div class="category-item">
+                    <div class="category-info">
+                        <div class="category-name">${category}</div>
+                        <div class="category-amount">₹${amount.toLocaleString()}</div>
+                    </div>
+                    <div class="category-bar">
+                        <div class="category-fill" style="width: ${(amount / sortedCategories[0][1]) * 100}%"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <span>${message}</span>
+                    <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+            `;
+            
+            document.getElementById('toast-container').appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 5000);
+        }
+
+        // Initialize
+        initializeCharts();
+        loadTransactions();
+
+        // Set current year in selector
+        comparisonYear.value = new Date().getFullYear();
+
+        // Handle window resize for chart responsiveness
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (balanceChart) balanceChart.resize();
+                if (pieChart) pieChart.resize();
+                if (monthlyChart) monthlyChart.resize();
+                
+                // Update chart options for new screen size
+                updateChartsForScreenSize();
+            }, 250);
+        });
+
+        function updateChartsForScreenSize() {
+            const isMobile = window.innerWidth < 480;
+            
+            // Update monthly chart labels for mobile
+            if (monthlyChart) {
+                monthlyChart.data.labels = isMobile ? 
+                    ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'] :
+                    ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                
+                // Update bar thickness
+                monthlyChart.data.datasets.forEach(dataset => {
+                    dataset.maxBarThickness = isMobile ? 20 : 40;
+                });
+                
+                // Update font sizes
+                monthlyChart.options.scales.x.ticks.font.size = isMobile ? 10 : 12;
+                monthlyChart.options.scales.y.ticks.font.size = isMobile ? 10 : 12;
+                monthlyChart.options.plugins.legend.labels.font.size = isMobile ? 11 : 12;
+                
+                monthlyChart.update();
+            }
+            
+            // Update other charts
+            [balanceChart, pieChart].forEach(chart => {
+                if (chart) {
+                    // Update font sizes
+                    if (chart.options.scales) {
+                        if (chart.options.scales.x) {
+                            chart.options.scales.x.ticks.font = { size: isMobile ? 10 : 12 };
+                            chart.options.scales.x.ticks.maxTicksLimit = isMobile ? 4 : 7;
+                            chart.options.scales.x.ticks.maxRotation = isMobile ? 45 : 0;
+                        }
+                        if (chart.options.scales.y) {
+                            chart.options.scales.y.ticks.font = { size: isMobile ? 10 : 12 };
+                            chart.options.scales.y.ticks.maxTicksLimit = isMobile ? 5 : 8;
+                        }
+                    }
+                    
+                    // Update point radius for line charts
+                    if (chart.data.datasets) {
+                        chart.data.datasets.forEach(dataset => {
+                            if (dataset.borderWidth !== undefined) {
+                                dataset.borderWidth = isMobile ? 2 : 3;
+                            }
+                        });
+                    }
+                    
+                    // Update pie chart cutout
+                    if (chart.config.type === 'doughnut') {
+                        chart.data.datasets[0].cutout = isMobile ? '60%' : '70%';
+                    }
+                    
+                    chart.update();
+                }
+            });
+        }
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
+</body>
+</html>

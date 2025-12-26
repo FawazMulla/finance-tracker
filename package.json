@@ -1,0 +1,31 @@
+{
+  "name": "finance-tracker",
+  "version": "2.0.0",
+  "description": "Modern finance tracker PWA with offline support",
+  "type": "module",
+  "scripts": {
+    "dev": "python -m http.server 3000",
+    "build": "node build.js",
+    "preview": "python -m http.server 4173",
+    "deploy": "vercel --prod",
+    "deploy:netlify": "netlify deploy --prod",
+    "icons": "node generate-icons.js",
+    "icons:sharp": "npm install sharp && node generate-icons-sharp.js"
+  },
+  "keywords": [
+    "finance",
+    "tracker",
+    "pwa",
+    "offline",
+    "budget"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/FawazMulla/finance-tracker.git"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
