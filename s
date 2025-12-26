@@ -1,5 +1,5 @@
 const SHEET_NAME = "Transactions";
-const SECRET_TOKEN = "694ec953e60c832280e4316f7d02b261";
+const SECRET_TOKEN = "ADD_RANDOM_TOKEN";
 
 function doPost(e) {
   try {

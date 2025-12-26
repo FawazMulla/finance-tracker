@@ -27,6 +27,12 @@ A beautiful, modern Progressive Web App for personal finance tracking with offli
 ### 📊 **Rich Features**
 - Add income and expenses with descriptions
 - View transaction history with filtering
+- **Advanced Statistics Dashboard**:
+  - Interactive charts (balance trends, income vs expenses)
+  - Monthly/yearly comparisons
+  - Financial insights and recommendations
+  - Spending category analysis
+  - Savings rate tracking
 - Summary cards showing total income/expenses
 - Date-based grouping of transactions
 - Edit and delete transactions inline

@@ -5,6 +5,8 @@ self.addEventListener("install", e =>
         "/",
         "/index.html",
         "/history.html",
+        "/stats.html",
+        "/debug.html",
         "/style.css",
         "/app.js",
         "/db.js",

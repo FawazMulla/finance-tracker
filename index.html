@@ -2,15 +2,24 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Finance Tracker - Smart Money Management</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#6366f1">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0f172a">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#6366f1">
     <meta name="description" content="Modern finance tracker with offline support and beautiful UI">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Finance Tracker">
+    <meta name="mobile-web-app-capable" content="yes">
     
-    <!-- Preload critical resources -->
-    <link rel="preload" href="./app.js" as="script" type="module">
+    <!-- Essential Favicons -->
+    <link rel="icon" type="image/x-icon" href="/favicon.ico">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/manifest.json">
     
     <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='40' fill='%236366f1'/%3E%3Ctext x='50' y='60' text-anchor='middle' fill='white' font-size='35' font-family='Arial'%3E₹%3C/text%3E%3C/svg%3E">
@@ -182,7 +191,7 @@
                 <span>History</span>
             </a>
             
-            <button class="nav-item" id="stats-btn">
+            <button class="nav-item" id="stats-btn" onclick="window.location.href='stats.html'">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="20" x2="18" y2="10"></line>
                     <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -209,9 +218,61 @@
 
         let isSubmitting = false;
         let currentTransactions = [];
+        let deferredPrompt;
 
-        // Theme Management
-        const theme = localStorage.getItem('theme') || 'light';
+        // PWA Installation
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            showInstallPrompt();
+        });
+
+        function showInstallPrompt() {
+            if (deferredPrompt && !localStorage.getItem('pwa-dismissed')) {
+                const installBanner = document.createElement('div');
+                installBanner.className = 'install-banner';
+                installBanner.innerHTML = `
+                    <div class="install-content">
+                        <div class="install-icon">📱</div>
+                        <div class="install-text">
+                            <div class="install-title">Install Finance Tracker</div>
+                            <div class="install-subtitle">Get quick access and offline support</div>
+                        </div>
+                        <div class="install-actions">
+                            <button class="btn btn-primary install-btn">Install</button>
+                            <button class="install-close">×</button>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(installBanner);
+                
+                installBanner.querySelector('.install-btn').addEventListener('click', async () => {
+                    if (deferredPrompt) {
+                        deferredPrompt.prompt();
+                        const { outcome } = await deferredPrompt.userChoice;
+                        console.log(`PWA install outcome: ${outcome}`);
+                        deferredPrompt = null;
+                        installBanner.remove();
+                    }
+                });
+                
+                installBanner.querySelector('.install-close').addEventListener('click', () => {
+                    localStorage.setItem('pwa-dismissed', 'true');
+                    installBanner.remove();
+                });
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    if (installBanner.parentElement) {
+                        installBanner.remove();
+                    }
+                }, 10000);
+            }
+        }
+
+        // Theme Management - Default to dark mode
+        const theme = localStorage.getItem('theme') || 'dark';
         document.documentElement.setAttribute('data-theme', theme);
         
         themeToggle.addEventListener('click', () => {
