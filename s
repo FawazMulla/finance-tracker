@@ -3,17 +3,21 @@ const SECRET_TOKEN = "694ec953e60c832280e4316f7d02b261";
 
 function doPost(e) {
   try {
+    // Log the incoming request for debugging
+    console.log('Received POST request:', e);
+    
     const token = e.parameter.token;
     if (token !== SECRET_TOKEN) {
-      return createCorsResponse({ error: "Unauthorized" }, 401);
+      return jsonResponse({ error: "Unauthorized" });
     }
 
-    // Get action from parameters
     const action = e.parameter.action;
+    console.log('Action:', action);
+    
     const sheet = SpreadsheetApp.getActive().getSheetByName(SHEET_NAME);
     
     if (!sheet) {
-      return createCorsResponse({ error: "Sheet not found. Please create a sheet named 'Transactions'" }, 404);
+      return jsonResponse({ error: "Sheet not found. Please create a sheet named 'Transactions'" });
     }
 
     switch (action) {
@@ -21,108 +25,142 @@ function doPost(e) {
         return fetchAll(sheet);
 
       case "add":
-        sheet.appendRow([
-          e.parameter.id,
-          e.parameter.date,
-          Number(e.parameter.amount) || 0,
-          e.parameter.note || ""
-        ]);
-        return createCorsResponse({ success: true });
+        return addTransaction(sheet, e.parameter);
 
       case "update":
-        return updateRow(sheet, e.parameter);
+        return updateTransaction(sheet, e.parameter);
 
       case "delete":
-        return deleteRow(sheet, e.parameter.id);
+        return deleteTransaction(sheet, e.parameter.id);
 
       default:
-        return createCorsResponse({ error: "Invalid action" }, 400);
+        return jsonResponse({ error: "Invalid action: " + action });
     }
   } catch (error) {
     console.error('Error in doPost:', error);
-    return createCorsResponse({ error: error.toString() }, 500);
+    return jsonResponse({ error: "Server error: " + error.toString() });
   }
 }
 
 function doGet(e) {
-  const token = e.parameter.token;
-  if (token !== SECRET_TOKEN) {
-    return createCorsResponse({ error: "Unauthorized" }, 401);
+  try {
+    const token = e.parameter.token;
+    if (token !== SECRET_TOKEN) {
+      return jsonResponse({ error: "Unauthorized" });
+    }
+    
+    return jsonResponse({ 
+      message: "Finance Tracker API is working", 
+      timestamp: new Date().toISOString(),
+      sheetName: SHEET_NAME,
+      status: "OK"
+    });
+  } catch (error) {
+    console.error('Error in doGet:', error);
+    return jsonResponse({ error: error.toString() });
   }
-  
-  return createCorsResponse({ 
-    message: "Finance Tracker API is working", 
-    timestamp: new Date().toISOString(),
-    sheetName: SHEET_NAME
-  });
 }
 
 function fetchAll(sheet) {
   try {
     const range = sheet.getDataRange();
-    if (range.getNumRows() <= 1) {
+    const numRows = range.getNumRows();
+    
+    console.log('Sheet has', numRows, 'rows');
+    
+    if (numRows <= 1) {
       // Only header row or empty sheet
-      return createCorsResponse([]);
+      return jsonResponse([]);
     }
     
     const rows = range.getValues();
-    rows.shift(); // Remove header row
+    console.log('Raw rows:', rows);
     
-    const transactions = rows.map(r => ({
-      id: r[0],
-      date: r[1],
-      amount: Number(r[2]) || 0,
-      note: r[3] || ""
-    })).filter(tx => tx.id); // Filter out empty rows
+    // Remove header row
+    rows.shift();
     
-    return createCorsResponse(transactions);
+    const transactions = rows
+      .filter(row => row[0]) // Filter out empty rows
+      .map(row => ({
+        id: row[0] ? row[0].toString() : '',
+        date: row[1] ? row[1].toString() : new Date().toISOString(),
+        amount: Number(row[2]) || 0,
+        note: row[3] ? row[3].toString() : ''
+      }));
+    
+    console.log('Processed transactions:', transactions);
+    return jsonResponse(transactions);
   } catch (error) {
     console.error('Error in fetchAll:', error);
-    return createCorsResponse({ error: error.toString() }, 500);
+    return jsonResponse({ error: "Failed to fetch data: " + error.toString() });
   }
 }
 
-function updateRow(sheet, params) {
+function addTransaction(sheet, params) {
   try {
+    console.log('Adding transaction:', params);
+    
+    const row = [
+      params.id || '',
+      params.date || new Date().toISOString(),
+      Number(params.amount) || 0,
+      params.note || ''
+    ];
+    
+    console.log('Adding row:', row);
+    sheet.appendRow(row);
+    
+    return jsonResponse({ success: true, message: "Transaction added" });
+  } catch (error) {
+    console.error('Error in addTransaction:', error);
+    return jsonResponse({ error: "Failed to add transaction: " + error.toString() });
+  }
+}
+
+function updateTransaction(sheet, params) {
+  try {
+    console.log('Updating transaction:', params);
+    
     const rows = sheet.getDataRange().getValues();
     for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0] === params.id) {
+      if (rows[i][0] && rows[i][0].toString() === params.id) {
         sheet.getRange(i + 1, 2, 1, 3).setValues([[
-          params.date,
+          params.date || new Date().toISOString(),
           Number(params.amount) || 0,
           params.note || ""
         ]]);
-        return createCorsResponse({ success: true });
+        return jsonResponse({ success: true, message: "Transaction updated" });
       }
     }
-    return createCorsResponse({ error: "Transaction not found" }, 404);
+    return jsonResponse({ error: "Transaction not found" });
   } catch (error) {
-    console.error('Error in updateRow:', error);
-    return createCorsResponse({ error: error.toString() }, 500);
+    console.error('Error in updateTransaction:', error);
+    return jsonResponse({ error: "Failed to update transaction: " + error.toString() });
   }
 }
 
-function deleteRow(sheet, id) {
+function deleteTransaction(sheet, id) {
   try {
+    console.log('Deleting transaction:', id);
+    
     const rows = sheet.getDataRange().getValues();
     for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0] === id) {
+      if (rows[i][0] && rows[i][0].toString() === id) {
         sheet.deleteRow(i + 1);
-        return createCorsResponse({ success: true });
+        return jsonResponse({ success: true, message: "Transaction deleted" });
       }
     }
-    return createCorsResponse({ error: "Transaction not found" }, 404);
+    return jsonResponse({ error: "Transaction not found" });
   } catch (error) {
-    console.error('Error in deleteRow:', error);
-    return createCorsResponse({ error: error.toString() }, 500);
+    console.error('Error in deleteTransaction:', error);
+    return jsonResponse({ error: "Failed to delete transaction: " + error.toString() });
   }
 }
 
-function createCorsResponse(data, status = 200) {
+function jsonResponse(data) {
   const output = ContentService
     .createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
   
-  // Add CORS headers
   return output;
 }

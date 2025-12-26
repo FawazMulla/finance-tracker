@@ -6,169 +6,420 @@
     <title>Transaction History - Finance Tracker</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#2563eb">
+    <meta name="theme-color" content="#6366f1">
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Transaction History</h1>
-            <div id="status" class="status"></div>
-        </header>
-
-        <main>
-            <div class="loading" id="loading" style="display: none;">
-                <div class="spinner"></div>
-                <span>Loading transactions...</span>
-            </div>
-
-            <div class="error" id="error" style="display: none;"></div>
-            <div class="success" id="success" style="display: none;"></div>
-
-            <div id="transactions-container">
-                <ul id="list" class="transaction-list"></ul>
-                <div id="empty-state" class="empty-state" style="display: none;">
-                    <p>No transactions yet</p>
-                    <a href="index.html" class="btn btn-primary">Add your first transaction</a>
+    <div class="app">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <button id="back-btn" class="icon-btn" aria-label="Go back">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+                    <h1 class="logo-text">Transaction History</h1>
+                </div>
+                
+                <div class="header-actions">
+                    <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme">
+                        <svg class="theme-icon sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <svg class="theme-icon moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                    </button>
+                    
+                    <div id="connection-status" class="connection-status online">
+                        <div class="status-dot"></div>
+                        <span class="status-text">Online</span>
+                    </div>
                 </div>
             </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Summary Cards -->
+            <section class="summary-section">
+                <div class="summary-grid">
+                    <div class="summary-card income">
+                        <div class="summary-icon">↗️</div>
+                        <div class="summary-content">
+                            <div class="summary-label">Total Income</div>
+                            <div class="summary-value" id="total-income">₹0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-card expense">
+                        <div class="summary-icon">↙️</div>
+                        <div class="summary-content">
+                            <div class="summary-label">Total Expenses</div>
+                            <div class="summary-value" id="total-expenses">₹0</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Filters -->
+            <section class="filters-section">
+                <div class="filters">
+                    <select id="filter-type" class="filter-select">
+                        <option value="all">All Transactions</option>
+                        <option value="income">Income Only</option>
+                        <option value="expense">Expenses Only</option>
+                    </select>
+                    
+                    <select id="filter-period" class="filter-select">
+                        <option value="all">All Time</option>
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="year">This Year</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Transactions List -->
+            <section class="transactions-section">
+                <div class="section-header">
+                    <h3 id="transactions-title">All Transactions</h3>
+                    <div class="transaction-count" id="transaction-count">0 transactions</div>
+                </div>
+                
+                <div id="transactions-container" class="transactions-container">
+                    <div class="loading-state" id="loading-state">
+                        <div class="loading-spinner"></div>
+                        <p>Loading transactions...</p>
+                    </div>
+                </div>
+            </section>
         </main>
 
-        <nav class="navigation">
-            <a href="index.html" class="nav-link">
-                ← Back to Home
+        <!-- Loading Overlay -->
+        <div id="loading-overlay" class="loading-overlay" style="display: none;">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <p>Processing...</p>
+            </div>
+        </div>
+
+        <!-- Toast Notifications -->
+        <div id="toast-container" class="toast-container"></div>
+
+        <!-- Bottom Navigation -->
+        <nav class="bottom-nav">
+            <a href="index.html" class="nav-item">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+                <span>Home</span>
             </a>
+            
+            <a href="history.html" class="nav-item active">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4"></path>
+                    <polyline points="9 11 12 14 15 11"></polyline>
+                    <line x1="12" y1="2" x2="12" y2="14"></line>
+                </svg>
+                <span>History</span>
+            </a>
+            
+            <button class="nav-item" id="stats-btn">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="20" x2="18" y2="10"></line>
+                    <line x1="12" y1="20" x2="12" y2="4"></line>
+                    <line x1="6" y1="20" x2="6" y2="14"></line>
+                </svg>
+                <span>Stats</span>
+            </button>
         </nav>
     </div>
 
     <script type="module">
         import { loadData, updateTx, deleteTx, onLoadingChange } from "./app.js";
 
-        const list = document.getElementById("list");
-        const loadingEl = document.getElementById("loading");
-        const errorEl = document.getElementById("error");
-        const successEl = document.getElementById("success");
-        const statusEl = document.getElementById("status");
-        const emptyStateEl = document.getElementById("empty-state");
+        // DOM Elements
+        const loadingOverlay = document.getElementById("loading-overlay");
+        const connectionStatus = document.getElementById("connection-status");
+        const transactionsContainer = document.getElementById("transactions-container");
+        const loadingState = document.getElementById("loading-state");
+        const totalIncomeEl = document.getElementById("total-income");
+        const totalExpensesEl = document.getElementById("total-expenses");
+        const transactionCountEl = document.getElementById("transaction-count");
+        const transactionsTitleEl = document.getElementById("transactions-title");
+        const filterType = document.getElementById("filter-type");
+        const filterPeriod = document.getElementById("filter-period");
+        const themeToggle = document.getElementById("theme-toggle");
+        const backBtn = document.getElementById("back-btn");
 
-        let txs = [];
+        let allTransactions = [];
+        let filteredTransactions = [];
         let isUpdating = false;
+
+        // Theme Management
+        const theme = localStorage.getItem('theme') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        themeToggle.addEventListener('click', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        });
+
+        // Navigation
+        backBtn.addEventListener('click', () => {
+            window.history.back();
+        });
 
         // Loading state management
         onLoadingChange((loading) => {
-            loadingEl.style.display = loading ? 'flex' : 'none';
+            loadingOverlay.style.display = loading ? 'flex' : 'none';
         });
 
-        // Online/offline status
-        function updateStatus() {
-            statusEl.textContent = navigator.onLine ? '🟢 Online' : '🔴 Offline';
-            statusEl.className = `status ${navigator.onLine ? 'online' : 'offline'}`;
+        // Connection status
+        function updateConnectionStatus() {
+            const isOnline = navigator.onLine;
+            connectionStatus.className = `connection-status ${isOnline ? 'online' : 'offline'}`;
+            connectionStatus.querySelector('.status-text').textContent = isOnline ? 'Online' : 'Offline';
         }
 
-        window.addEventListener('online', updateStatus);
-        window.addEventListener('offline', updateStatus);
-        updateStatus();
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        updateConnectionStatus();
+
+        // Filter event listeners
+        filterType.addEventListener('change', applyFilters);
+        filterPeriod.addEventListener('change', applyFilters);
 
         async function loadTransactions() {
             try {
-                txs = await loadData();
-                txs.sort((a, b) => new Date(b.date) - new Date(a.date));
-                render();
+                loadingState.style.display = 'flex';
+                allTransactions = await loadData();
+                allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+                
+                updateSummary();
+                applyFilters();
+                
             } catch (error) {
-                showError('Failed to load transactions. Please try again.');
+                console.error('Error loading transactions:', error);
+                showToast('Failed to load transactions. Please try again.', 'error');
+                showEmptyState('Error loading transactions');
+            } finally {
+                loadingState.style.display = 'none';
             }
         }
 
-        function render() {
-            if (txs.length === 0) {
-                list.style.display = 'none';
-                emptyStateEl.style.display = 'block';
+        function updateSummary() {
+            const totalIncome = allTransactions
+                .filter(t => t.amount > 0)
+                .reduce((sum, t) => sum + t.amount, 0);
+            
+            const totalExpenses = allTransactions
+                .filter(t => t.amount < 0)
+                .reduce((sum, t) => sum + Math.abs(t.amount), 0);
+
+            totalIncomeEl.textContent = `₹${totalIncome.toLocaleString('en-IN')}`;
+            totalExpensesEl.textContent = `₹${totalExpenses.toLocaleString('en-IN')}`;
+        }
+
+        function applyFilters() {
+            const typeFilter = filterType.value;
+            const periodFilter = filterPeriod.value;
+
+            filteredTransactions = allTransactions.filter(transaction => {
+                // Type filter
+                if (typeFilter === 'income' && transaction.amount <= 0) return false;
+                if (typeFilter === 'expense' && transaction.amount >= 0) return false;
+
+                // Period filter
+                if (periodFilter !== 'all') {
+                    const transactionDate = new Date(transaction.date);
+                    const now = new Date();
+                    
+                    switch (periodFilter) {
+                        case 'today':
+                            if (transactionDate.toDateString() !== now.toDateString()) return false;
+                            break;
+                        case 'week':
+                            const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                            if (transactionDate < weekAgo) return false;
+                            break;
+                        case 'month':
+                            if (transactionDate.getMonth() !== now.getMonth() || 
+                                transactionDate.getFullYear() !== now.getFullYear()) return false;
+                            break;
+                        case 'year':
+                            if (transactionDate.getFullYear() !== now.getFullYear()) return false;
+                            break;
+                    }
+                }
+
+                return true;
+            });
+
+            updateTransactionsList();
+            updateFilterTitle();
+        }
+
+        function updateFilterTitle() {
+            const typeText = filterType.options[filterType.selectedIndex].text;
+            const periodText = filterPeriod.options[filterPeriod.selectedIndex].text;
+            
+            transactionsTitleEl.textContent = periodText === 'All Time' ? typeText : `${typeText} - ${periodText}`;
+            transactionCountEl.textContent = `${filteredTransactions.length} transaction${filteredTransactions.length !== 1 ? 's' : ''}`;
+        }
+
+        function updateTransactionsList() {
+            if (filteredTransactions.length === 0) {
+                showEmptyState('No transactions found');
                 return;
             }
 
-            list.style.display = 'block';
-            emptyStateEl.style.display = 'none';
+            const groupedTransactions = groupTransactionsByDate(filteredTransactions);
+            
+            transactionsContainer.innerHTML = Object.entries(groupedTransactions)
+                .map(([date, transactions]) => `
+                    <div class="date-group">
+                        <div class="date-header">${formatDateHeader(date)}</div>
+                        <div class="transactions-list">
+                            ${transactions.map(tx => createTransactionHTML(tx)).join('')}
+                        </div>
+                    </div>
+                `).join('');
 
-            list.innerHTML = txs.map(t => {
-                const date = new Date(t.date);
-                const isIncome = t.amount > 0;
-                
-                return `
-                    <li class="transaction-item ${isIncome ? 'income' : 'expense'}" data-id="${escapeHtml(t.id)}">
-                        <div class="transaction-header">
-                            <span class="amount ${isIncome ? 'positive' : 'negative'}">
-                                ${isIncome ? '+' : ''}₹${Math.abs(t.amount).toLocaleString()}
-                            </span>
-                            <span class="date">${date.toLocaleDateString()}</span>
+            // Add event listeners to transaction items
+            addTransactionEventListeners();
+        }
+
+        function groupTransactionsByDate(transactions) {
+            return transactions.reduce((groups, transaction) => {
+                const date = new Date(transaction.date).toDateString();
+                if (!groups[date]) {
+                    groups[date] = [];
+                }
+                groups[date].push(transaction);
+                return groups;
+            }, {});
+        }
+
+        function formatDateHeader(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            const yesterday = new Date(today.getTime() - 24 * 60 * 60 * 1000);
+
+            if (date.toDateString() === today.toDateString()) {
+                return 'Today';
+            } else if (date.toDateString() === yesterday.toDateString()) {
+                return 'Yesterday';
+            } else {
+                return date.toLocaleDateString('en-IN', { 
+                    weekday: 'long', 
+                    year: 'numeric', 
+                    month: 'long', 
+                    day: 'numeric' 
+                });
+            }
+        }
+
+        function createTransactionHTML(tx) {
+            const isIncome = tx.amount > 0;
+            const date = new Date(tx.date);
+            
+            return `
+                <div class="transaction-card ${isIncome ? 'income' : 'expense'}" data-id="${escapeHtml(tx.id)}">
+                    <div class="transaction-main">
+                        <div class="transaction-icon">
+                            ${isIncome ? '↗️' : '↙️'}
                         </div>
                         
-                        <div class="transaction-details">
-                            <div class="input-row">
-                                <label>Amount:</label>
-                                <input 
-                                    type="number" 
-                                    value="${Math.abs(t.amount)}" 
-                                    class="edit-amount"
-                                    step="0.01"
-                                    min="0"
-                                    data-id="${escapeHtml(t.id)}"
-                                >
-                                <select class="edit-type" data-id="${escapeHtml(t.id)}">
+                        <div class="transaction-info">
+                            <div class="transaction-note">${escapeHtml(tx.note || 'No description')}</div>
+                            <div class="transaction-time">${date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        
+                        <div class="transaction-amount ${isIncome ? 'positive' : 'negative'}">
+                            ${isIncome ? '+' : ''}₹${Math.abs(tx.amount).toLocaleString('en-IN')}
+                        </div>
+                        
+                        <button class="transaction-menu-btn" data-id="${escapeHtml(tx.id)}">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="1"></circle>
+                                <circle cx="12" cy="5" r="1"></circle>
+                                <circle cx="12" cy="19" r="1"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="transaction-actions" style="display: none;">
+                        <div class="edit-form">
+                            <div class="edit-row">
+                                <input type="number" class="edit-amount" value="${Math.abs(tx.amount)}" step="0.01" min="0">
+                                <select class="edit-type">
                                     <option value="1" ${isIncome ? 'selected' : ''}>Income</option>
                                     <option value="-1" ${!isIncome ? 'selected' : ''}>Expense</option>
                                 </select>
                             </div>
-                            
-                            <div class="input-row">
-                                <label>Note:</label>
-                                <input 
-                                    type="text" 
-                                    value="${escapeHtml(t.note || '')}" 
-                                    class="edit-note"
-                                    maxlength="100"
-                                    data-id="${escapeHtml(t.id)}"
-                                >
-                            </div>
-                            
-                            <div class="transaction-actions">
-                                <button class="btn btn-primary btn-save" data-id="${escapeHtml(t.id)}">
-                                    Save
-                                </button>
-                                <button class="btn btn-danger btn-delete" data-id="${escapeHtml(t.id)}">
-                                    Delete
-                                </button>
+                            <input type="text" class="edit-note" value="${escapeHtml(tx.note || '')}" placeholder="Description" maxlength="100">
+                            <div class="edit-actions">
+                                <button class="btn btn-primary save-btn" data-id="${escapeHtml(tx.id)}">Save</button>
+                                <button class="btn btn-danger delete-btn" data-id="${escapeHtml(tx.id)}">Delete</button>
+                                <button class="btn cancel-btn" data-id="${escapeHtml(tx.id)}">Cancel</button>
                             </div>
                         </div>
-                        
-                        <small class="timestamp">
-                            Last updated: ${date.toLocaleString()}
-                        </small>
-                    </li>
-                `;
-            }).join("");
-
-            // Add event listeners
-            addEventListeners();
+                    </div>
+                </div>
+            `;
         }
 
-        function addEventListeners() {
+        function addTransactionEventListeners() {
+            // Menu buttons
+            document.querySelectorAll('.transaction-menu-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const id = btn.dataset.id;
+                    const card = document.querySelector(`[data-id="${id}"]`);
+                    const actions = card.querySelector('.transaction-actions');
+                    const isVisible = actions.style.display !== 'none';
+                    
+                    // Hide all other open actions
+                    document.querySelectorAll('.transaction-actions').forEach(action => {
+                        action.style.display = 'none';
+                    });
+                    
+                    // Toggle current actions
+                    actions.style.display = isVisible ? 'none' : 'block';
+                });
+            });
+
             // Save buttons
-            document.querySelectorAll('.btn-save').forEach(btn => {
+            document.querySelectorAll('.save-btn').forEach(btn => {
                 btn.addEventListener('click', handleSave);
             });
 
             // Delete buttons
-            document.querySelectorAll('.btn-delete').forEach(btn => {
+            document.querySelectorAll('.delete-btn').forEach(btn => {
                 btn.addEventListener('click', handleDelete);
             });
 
-            // Enter key support for inputs
-            document.querySelectorAll('.edit-amount, .edit-note').forEach(input => {
-                input.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') {
-                        const id = input.dataset.id;
-                        const saveBtn = document.querySelector(`.btn-save[data-id="${id}"]`);
-                        if (saveBtn) saveBtn.click();
-                    }
+            // Cancel buttons
+            document.querySelectorAll('.cancel-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = btn.dataset.id;
+                    const card = document.querySelector(`[data-id="${id}"]`);
+                    card.querySelector('.transaction-actions').style.display = 'none';
                 });
             });
         }
@@ -177,29 +428,29 @@
             if (isUpdating) return;
 
             const id = e.target.dataset.id;
-            const transaction = txs.find(t => t.id === id);
+            const card = document.querySelector(`[data-id="${id}"]`);
+            const transaction = allTransactions.find(t => t.id === id);
             
             if (!transaction) {
-                showError('Transaction not found');
+                showToast('Transaction not found', 'error');
                 return;
             }
 
-            const amountInput = document.querySelector(`.edit-amount[data-id="${id}"]`);
-            const typeSelect = document.querySelector(`.edit-type[data-id="${id}"]`);
-            const noteInput = document.querySelector(`.edit-note[data-id="${id}"]`);
+            const amountInput = card.querySelector('.edit-amount');
+            const typeSelect = card.querySelector('.edit-type');
+            const noteInput = card.querySelector('.edit-note');
 
             const amount = parseFloat(amountInput.value);
             const type = parseInt(typeSelect.value);
             const note = noteInput.value.trim();
 
             if (!amount || amount <= 0) {
-                showError('Please enter a valid amount');
+                showToast('Please enter a valid amount', 'error');
                 amountInput.focus();
                 return;
             }
 
             isUpdating = true;
-            hideMessages();
 
             try {
                 const updatedTx = {
@@ -211,15 +462,18 @@
                 await updateTx(updatedTx);
                 
                 // Update local data
-                const index = txs.findIndex(t => t.id === id);
+                const index = allTransactions.findIndex(t => t.id === id);
                 if (index !== -1) {
-                    txs[index] = updatedTx;
-                    render();
+                    allTransactions[index] = updatedTx;
+                    updateSummary();
+                    applyFilters();
                 }
 
-                showSuccess('Transaction updated successfully!');
+                showToast('Transaction updated successfully!', 'success');
+                
             } catch (error) {
-                showError(error.message || 'Failed to update transaction');
+                console.error('Update error:', error);
+                showToast(error.message || 'Failed to update transaction', 'error');
             } finally {
                 isUpdating = false;
             }
@@ -235,18 +489,30 @@
             }
 
             isUpdating = true;
-            hideMessages();
 
             try {
                 await deleteTx(id);
-                txs = txs.filter(t => t.id !== id);
-                render();
-                showSuccess('Transaction deleted successfully!');
+                allTransactions = allTransactions.filter(t => t.id !== id);
+                updateSummary();
+                applyFilters();
+                showToast('Transaction deleted successfully!', 'success');
+                
             } catch (error) {
-                showError(error.message || 'Failed to delete transaction');
+                console.error('Delete error:', error);
+                showToast(error.message || 'Failed to delete transaction', 'error');
             } finally {
                 isUpdating = false;
             }
+        }
+
+        function showEmptyState(message) {
+            transactionsContainer.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon">📊</div>
+                    <p>${message}</p>
+                    <a href="index.html" class="btn btn-primary">Add Transaction</a>
+                </div>
+            `;
         }
 
         function escapeHtml(text) {
@@ -255,21 +521,23 @@
             return div.innerHTML;
         }
 
-        function showError(message) {
-            errorEl.textContent = message;
-            errorEl.style.display = 'block';
-            setTimeout(hideMessages, 5000);
-        }
-
-        function showSuccess(message) {
-            successEl.textContent = message;
-            successEl.style.display = 'block';
-            setTimeout(hideMessages, 3000);
-        }
-
-        function hideMessages() {
-            errorEl.style.display = 'none';
-            successEl.style.display = 'none';
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-content">
+                    <span>${message}</span>
+                    <button class="toast-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+            `;
+            
+            document.getElementById('toast-container').appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 5000);
         }
 
         // Initialize

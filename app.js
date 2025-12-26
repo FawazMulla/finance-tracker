@@ -1,7 +1,22 @@
 import { cacheTransactions, readCache, enqueue, flushQueue } from "./db.js";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbyiCgsCBuk8wMzJReISNte_fV3lYNXAdDfvfTSbPig9k-qKC9gU0VinQwvbaBwcZ9737Q/exec";
-const TOKEN = "694ec953e60c832280e4316f7d02b261";
+// Get API configuration from environment variables or runtime config
+const getConfig = () => {
+  // For static deployments with runtime config
+  if (typeof window !== 'undefined' && window.__RUNTIME_CONFIG__) {
+    return window.__RUNTIME_CONFIG__;
+  }
+  
+  // For development - you can set these directly here for testing
+  return {
+    API_URL: "https://script.google.com/macros/s/AKfycbyiCgsCBuk8wMzJReISNte_fV3lYNXAdDfvfTSbPig9k-qKC9gU0VinQwvbaBwcZ9737Q/exec",
+    API_TOKEN: "694ec953e60c832280e4316f7d02b261"
+  };
+};
+
+const config = getConfig();
+const API_URL = config.API_URL;
+const TOKEN = config.API_TOKEN;
 
 let isLoading = false;
 let loadingCallbacks = [];
@@ -27,7 +42,7 @@ async function api(action, payload = {}) {
   try {
     setLoading(true);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // Increased timeout
 
     // Create form data to avoid CORS preflight
     const formData = new FormData();
@@ -49,6 +64,7 @@ async function api(action, payload = {}) {
 
     clearTimeout(timeoutId);
     console.log('Response status:', res.status, res.statusText);
+    console.log('Response headers:', res.headers);
 
     if (!res.ok) {
       throw new Error(`HTTP ${res.status}: ${res.statusText}`);
@@ -57,11 +73,18 @@ async function api(action, payload = {}) {
     const text = await res.text();
     console.log('Raw response:', text);
 
+    // Check if response is HTML (error page)
+    if (text.trim().startsWith('<!DOCTYPE') || text.trim().startsWith('<html')) {
+      console.error('Received HTML instead of JSON - likely a Google Apps Script error');
+      throw new Error('Google Apps Script returned an error page. Check your deployment.');
+    }
+
     let data;
     try {
       data = JSON.parse(text);
     } catch (parseError) {
       console.error('JSON parse error:', parseError);
+      console.error('Response text:', text);
       throw new Error('Invalid JSON response from server');
     }
     
@@ -81,17 +104,19 @@ async function api(action, payload = {}) {
   }
 }
 
-
 export async function loadData() {
   try {
+    console.log('Loading data from API...');
     const data = await api("fetch");
     if (data.offline) {
+      console.log('Offline mode - using cache');
       const cached = await readCache();
       return cached || [];
     }
     
     // Ensure data is an array
     const transactions = Array.isArray(data) ? data : [];
+    console.log('Received transactions:', transactions);
     await cacheTransactions(transactions);
     return transactions;
   } catch (error) {
@@ -151,4 +176,3 @@ export async function deleteTx(id) {
     throw error;
   }
 }
-
