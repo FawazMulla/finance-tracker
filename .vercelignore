@@ -1,0 +1,12 @@
+# Don't ignore favicon files
+!favicon.ico
+!favicon-*.png
+!apple-touch-icon.png
+!android-chrome-*.png
+
+# Ignore development files
+.env.local
+.env.development
+node_modules/
+.DS_Store
+*.log
