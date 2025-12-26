@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finance Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="balance" class="balance">₹0</h1>
+            <div id="status" class="status"></div>
+        </header>
+
+        <main>
+            <form id="transaction-form" class="transaction-form">
+                <div class="input-group">
+                    <input 
+                        id="amount" 
+                        type="number" 
+                        placeholder="Enter amount" 
+                        step="0.01"
+                        min="0"
+                        required
+                        aria-label="Transaction amount"
+                    >
+                    <input 
+                        id="note" 
+                        type="text"
+                        placeholder="Add a note (optional)" 
+                        maxlength="100"
+                        aria-label="Transaction note"
+                    >
+                </div>
+                
+                <div class="button-group">
+                    <button type="button" id="plus" class="btn btn-income" aria-label="Add income">
+                        <span>+</span> Income
+                    </button>
+                    <button type="button" id="minus" class="btn btn-expense" aria-label="Add expense">
+                        <span>−</span> Expense
+                    </button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <span>Processing...</span>
+            </div>
+
+            <div class="error" id="error" style="display: none;"></div>
+            <div class="success" id="success" style="display: none;"></div>
+        </main>
+
+        <nav class="navigation">
+            <a href="history.html" class="nav-link">
+                📊 View History
+            </a>
+        </nav>
+    </div>
+
+    <script type="module">
+        import { loadData, addTx, onLoadingChange } from "./app.js";
+
+        const balanceEl = document.getElementById("balance");
+        const amountEl = document.getElementById("amount");
+        const noteEl = document.getElementById("note");
+        const loadingEl = document.getElementById("loading");
+        const errorEl = document.getElementById("error");
+        const successEl = document.getElementById("success");
+        const statusEl = document.getElementById("status");
+        const form = document.getElementById("transaction-form");
+
+        let isSubmitting = false;
+
+        // Loading state management
+        onLoadingChange((loading) => {
+            loadingEl.style.display = loading ? 'flex' : 'none';
+        });
+
+        // Online/offline status
+        function updateStatus() {
+            statusEl.textContent = navigator.onLine ? '🟢 Online' : '🔴 Offline';
+            statusEl.className = `status ${navigator.onLine ? 'online' : 'offline'}`;
+        }
+
+        window.addEventListener('online', updateStatus);
+        window.addEventListener('offline', updateStatus);
+        updateStatus();
+
+        // Button event handlers with debouncing
+        document.getElementById("plus").onclick = () => submit(1);
+        document.getElementById("minus").onclick = () => submit(-1);
+
+        // Form validation
+        amountEl.addEventListener('input', () => {
+            const value = parseFloat(amountEl.value);
+            if (value < 0) amountEl.value = Math.abs(value);
+        });
+
+        // Enter key support
+        form.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !isSubmitting) {
+                e.preventDefault();
+                // Default to expense if no specific button clicked
+                submit(-1);
+            }
+        });
+
+        async function refresh() {
+            try {
+                console.log('Loading transactions...');
+                const txs = await loadData();
+                console.log('Loaded transactions:', txs);
+                
+                if (!Array.isArray(txs)) {
+                    console.error('Invalid data format:', txs);
+                    showError('Invalid data format received');
+                    return;
+                }
+                
+                const total = txs.reduce((s, t) => s + (t.amount || 0), 0);
+                console.log('Calculated total:', total);
+                
+                balanceEl.textContent = `₹${total.toLocaleString()}`;
+                balanceEl.className = `balance ${total >= 0 ? 'positive' : 'negative'}`;
+            } catch (error) {
+                console.error('Error in refresh:', error);
+                showError('Failed to load data. Please try again.');
+            }
+        }
+
+        async function submit(sign) {
+            if (isSubmitting) return;
+
+            const amt = parseFloat(amountEl.value);
+            if (!amt || amt <= 0) {
+                showError("Please enter a valid amount");
+                amountEl.focus();
+                return;
+            }
+
+            isSubmitting = true;
+            hideMessages();
+
+            try {
+                await addTx(amt * sign, noteEl.value.trim());
+                amountEl.value = "";
+                noteEl.value = "";
+                showSuccess(`${sign > 0 ? 'Income' : 'Expense'} added successfully!`);
+                await refresh();
+                amountEl.focus();
+            } catch (error) {
+                showError(error.message || 'Failed to add transaction. Please try again.');
+            } finally {
+                isSubmitting = false;
+            }
+        }
+
+        function showError(message) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            setTimeout(hideMessages, 5000);
+        }
+
+        function showSuccess(message) {
+            successEl.textContent = message;
+            successEl.style.display = 'block';
+            setTimeout(hideMessages, 3000);
+        }
+
+        function hideMessages() {
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+        }
+
+        // Initialize app
+        refresh();
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
+</body>
+</html>

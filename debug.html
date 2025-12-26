@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Finance Tracker</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .debug { background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .error { background: #ffebee; color: #c62828; }
+        .success { background: #e8f5e8; color: #2e7d32; }
+        button { padding: 10px 20px; margin: 5px; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+    </style>
+</head>
+<body>
+    <h1>Finance Tracker Debug</h1>
+    
+    <div>
+        <h2>API Test</h2>
+        <button onclick="testAPI()">Test API Connection</button>
+        <button onclick="testFetch()">Test Fetch Data</button>
+        <button onclick="testAdd()">Test Add Transaction</button>
+        <div id="apiResult" class="debug"></div>
+    </div>
+
+    <div>
+        <h2>Add Transaction</h2>
+        <input type="number" id="amount" placeholder="Amount" value="100">
+        <input type="text" id="note" placeholder="Note" value="Test transaction">
+        <button onclick="addTransaction()">Add</button>
+    </div>
+
+    <div>
+        <h2>Current Balance</h2>
+        <div id="balance">₹0</div>
+        <button onclick="loadBalance()">Refresh Balance</button>
+    </div>
+
+    <div>
+        <h2>Debug Log</h2>
+        <div id="debugLog" class="debug"></div>
+    </div>
+
+    <script type="module">
+        const API_URL = "https://script.google.com/macros/s/AKfycbzsYIg9_qBaz5qbt_AiYrf34x0gTG-ApZSavu8wMS5YA0xl_ee6RHJCBkd9CEV7vzQIow/exec";
+        const TOKEN = "694ec953e60c832280e4316f7d02b261";
+
+        function log(message, type = 'info') {
+            const debugLog = document.getElementById('debugLog');
+            const timestamp = new Date().toLocaleTimeString();
+            debugLog.innerHTML += `<div class="${type}">[${timestamp}] ${message}</div>`;
+            console.log(message);
+        }
+
+        async function testAPI() {
+            log('Testing API connection...');
+            try {
+                const formData = new FormData();
+                formData.append('token', TOKEN);
+                formData.append('action', 'fetch');
+
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: formData
+                });
+                
+                log(`Response status: ${response.status} ${response.statusText}`);
+                
+                const text = await response.text();
+                log(`Raw response: ${text}`);
+                
+                try {
+                    const data = JSON.parse(text);
+                    log(`Parsed data: ${JSON.stringify(data)}`, 'success');
+                    document.getElementById('apiResult').innerHTML = `<pre>${JSON.stringify(data, null, 2)}</pre>`;
+                } catch (e) {
+                    log(`JSON parse error: ${e.message}`, 'error');
+                    document.getElementById('apiResult').innerHTML = `Raw response: ${text}`;
+                }
+            } catch (error) {
+                log(`API Error: ${error.message}`, 'error');
+                document.getElementById('apiResult').innerHTML = `Error: ${error.message}`;
+            }
+        }
+
+        async function testFetch() {
+            log('Testing fetch data...');
+            try {
+                const formData = new FormData();
+                formData.append('token', TOKEN);
+                formData.append('action', 'fetch');
+
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: formData
+                });
+                
+                const data = await response.json();
+                log(`Fetched ${Array.isArray(data) ? data.length : 'unknown'} transactions`, 'success');
+                
+                if (Array.isArray(data)) {
+                    data.forEach((tx, i) => {
+                        log(`Transaction ${i + 1}: ₹${tx.amount} - ${tx.note} (${tx.date})`);
+                    });
+                }
+            } catch (error) {
+                log(`Fetch Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAdd() {
+            log('Testing add transaction...');
+            try {
+                const testTx = {
+                    id: 'test-' + Date.now(),
+                    date: new Date().toISOString(),
+                    amount: 50,
+                    note: 'Debug test transaction'
+                };
+
+                const formData = new FormData();
+                formData.append('token', TOKEN);
+                formData.append('action', 'add');
+                formData.append('id', testTx.id);
+                formData.append('date', testTx.date);
+                formData.append('amount', testTx.amount);
+                formData.append('note', testTx.note);
+
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: formData
+                });
+                
+                const result = await response.json();
+                log(`Add result: ${JSON.stringify(result)}`, result.success ? 'success' : 'error');
+            } catch (error) {
+                log(`Add Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function addTransaction() {
+            const amount = parseFloat(document.getElementById('amount').value);
+            const note = document.getElementById('note').value;
+            
+            if (!amount) {
+                log('Please enter a valid amount', 'error');
+                return;
+            }
+
+            log(`Adding transaction: ₹${amount} - ${note}`);
+            
+            try {
+                const tx = {
+                    id: crypto.randomUUID(),
+                    date: new Date().toISOString(),
+                    amount: amount,
+                    note: note
+                };
+
+                const formData = new FormData();
+                formData.append('token', TOKEN);
+                formData.append('action', 'add');
+                formData.append('id', tx.id);
+                formData.append('date', tx.date);
+                formData.append('amount', tx.amount);
+                formData.append('note', tx.note);
+
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    log('Transaction added successfully!', 'success');
+                    document.getElementById('amount').value = '';
+                    document.getElementById('note').value = '';
+                    loadBalance();
+                } else {
+                    log(`Failed to add transaction: ${JSON.stringify(result)}`, 'error');
+                }
+            } catch (error) {
+                log(`Error adding transaction: ${error.message}`, 'error');
+            }
+        }
+
+        async function loadBalance() {
+            log('Loading balance...');
+            try {
+                const formData = new FormData();
+                formData.append('token', TOKEN);
+                formData.append('action', 'fetch');
+
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (Array.isArray(data)) {
+                    const total = data.reduce((sum, tx) => sum + (tx.amount || 0), 0);
+                    document.getElementById('balance').textContent = `₹${total.toLocaleString()}`;
+                    log(`Balance updated: ₹${total} (${data.length} transactions)`, 'success');
+                } else {
+                    log(`Invalid data format: ${JSON.stringify(data)}`, 'error');
+                    document.getElementById('balance').textContent = '₹0 (Error)';
+                }
+            } catch (error) {
+                log(`Error loading balance: ${error.message}`, 'error');
+                document.getElementById('balance').textContent = '₹0 (Error)';
+            }
+        }
+
+        // Make functions global for onclick handlers
+        window.testAPI = testAPI;
+        window.testFetch = testFetch;
+        window.testAdd = testAdd;
+        window.addTransaction = addTransaction;
+        window.loadBalance = loadBalance;
+
+        // Auto-load balance on page load
+        loadBalance();
+    </script>
+</body>
+</html>

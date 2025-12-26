@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transaction History - Finance Tracker</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2563eb">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Transaction History</h1>
+            <div id="status" class="status"></div>
+        </header>
+
+        <main>
+            <div class="loading" id="loading" style="display: none;">
+                <div class="spinner"></div>
+                <span>Loading transactions...</span>
+            </div>
+
+            <div class="error" id="error" style="display: none;"></div>
+            <div class="success" id="success" style="display: none;"></div>
+
+            <div id="transactions-container">
+                <ul id="list" class="transaction-list"></ul>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <p>No transactions yet</p>
+                    <a href="index.html" class="btn btn-primary">Add your first transaction</a>
+                </div>
+            </div>
+        </main>
+
+        <nav class="navigation">
+            <a href="index.html" class="nav-link">
+                ← Back to Home
+            </a>
+        </nav>
+    </div>
+
+    <script type="module">
+        import { loadData, updateTx, deleteTx, onLoadingChange } from "./app.js";
+
+        const list = document.getElementById("list");
+        const loadingEl = document.getElementById("loading");
+        const errorEl = document.getElementById("error");
+        const successEl = document.getElementById("success");
+        const statusEl = document.getElementById("status");
+        const emptyStateEl = document.getElementById("empty-state");
+
+        let txs = [];
+        let isUpdating = false;
+
+        // Loading state management
+        onLoadingChange((loading) => {
+            loadingEl.style.display = loading ? 'flex' : 'none';
+        });
+
+        // Online/offline status
+        function updateStatus() {
+            statusEl.textContent = navigator.onLine ? '🟢 Online' : '🔴 Offline';
+            statusEl.className = `status ${navigator.onLine ? 'online' : 'offline'}`;
+        }
+
+        window.addEventListener('online', updateStatus);
+        window.addEventListener('offline', updateStatus);
+        updateStatus();
+
+        async function loadTransactions() {
+            try {
+                txs = await loadData();
+                txs.sort((a, b) => new Date(b.date) - new Date(a.date));
+                render();
+            } catch (error) {
+                showError('Failed to load transactions. Please try again.');
+            }
+        }
+
+        function render() {
+            if (txs.length === 0) {
+                list.style.display = 'none';
+                emptyStateEl.style.display = 'block';
+                return;
+            }
+
+            list.style.display = 'block';
+            emptyStateEl.style.display = 'none';
+
+            list.innerHTML = txs.map(t => {
+                const date = new Date(t.date);
+                const isIncome = t.amount > 0;
+                
+                return `
+                    <li class="transaction-item ${isIncome ? 'income' : 'expense'}" data-id="${escapeHtml(t.id)}">
+                        <div class="transaction-header">
+                            <span class="amount ${isIncome ? 'positive' : 'negative'}">
+                                ${isIncome ? '+' : ''}₹${Math.abs(t.amount).toLocaleString()}
+                            </span>
+                            <span class="date">${date.toLocaleDateString()}</span>
+                        </div>
+                        
+                        <div class="transaction-details">
+                            <div class="input-row">
+                                <label>Amount:</label>
+                                <input 
+                                    type="number" 
+                                    value="${Math.abs(t.amount)}" 
+                                    class="edit-amount"
+                                    step="0.01"
+                                    min="0"
+                                    data-id="${escapeHtml(t.id)}"
+                                >
+                                <select class="edit-type" data-id="${escapeHtml(t.id)}">
+                                    <option value="1" ${isIncome ? 'selected' : ''}>Income</option>
+                                    <option value="-1" ${!isIncome ? 'selected' : ''}>Expense</option>
+                                </select>
+                            </div>
+                            
+                            <div class="input-row">
+                                <label>Note:</label>
+                                <input 
+                                    type="text" 
+                                    value="${escapeHtml(t.note || '')}" 
+                                    class="edit-note"
+                                    maxlength="100"
+                                    data-id="${escapeHtml(t.id)}"
+                                >
+                            </div>
+                            
+                            <div class="transaction-actions">
+                                <button class="btn btn-primary btn-save" data-id="${escapeHtml(t.id)}">
+                                    Save
+                                </button>
+                                <button class="btn btn-danger btn-delete" data-id="${escapeHtml(t.id)}">
+                                    Delete
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <small class="timestamp">
+                            Last updated: ${date.toLocaleString()}
+                        </small>
+                    </li>
+                `;
+            }).join("");
+
+            // Add event listeners
+            addEventListeners();
+        }
+
+        function addEventListeners() {
+            // Save buttons
+            document.querySelectorAll('.btn-save').forEach(btn => {
+                btn.addEventListener('click', handleSave);
+            });
+
+            // Delete buttons
+            document.querySelectorAll('.btn-delete').forEach(btn => {
+                btn.addEventListener('click', handleDelete);
+            });
+
+            // Enter key support for inputs
+            document.querySelectorAll('.edit-amount, .edit-note').forEach(input => {
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        const id = input.dataset.id;
+                        const saveBtn = document.querySelector(`.btn-save[data-id="${id}"]`);
+                        if (saveBtn) saveBtn.click();
+                    }
+                });
+            });
+        }
+
+        async function handleSave(e) {
+            if (isUpdating) return;
+
+            const id = e.target.dataset.id;
+            const transaction = txs.find(t => t.id === id);
+            
+            if (!transaction) {
+                showError('Transaction not found');
+                return;
+            }
+
+            const amountInput = document.querySelector(`.edit-amount[data-id="${id}"]`);
+            const typeSelect = document.querySelector(`.edit-type[data-id="${id}"]`);
+            const noteInput = document.querySelector(`.edit-note[data-id="${id}"]`);
+
+            const amount = parseFloat(amountInput.value);
+            const type = parseInt(typeSelect.value);
+            const note = noteInput.value.trim();
+
+            if (!amount || amount <= 0) {
+                showError('Please enter a valid amount');
+                amountInput.focus();
+                return;
+            }
+
+            isUpdating = true;
+            hideMessages();
+
+            try {
+                const updatedTx = {
+                    ...transaction,
+                    amount: amount * type,
+                    note: note
+                };
+
+                await updateTx(updatedTx);
+                
+                // Update local data
+                const index = txs.findIndex(t => t.id === id);
+                if (index !== -1) {
+                    txs[index] = updatedTx;
+                    render();
+                }
+
+                showSuccess('Transaction updated successfully!');
+            } catch (error) {
+                showError(error.message || 'Failed to update transaction');
+            } finally {
+                isUpdating = false;
+            }
+        }
+
+        async function handleDelete(e) {
+            if (isUpdating) return;
+
+            const id = e.target.dataset.id;
+            
+            if (!confirm('Are you sure you want to delete this transaction?')) {
+                return;
+            }
+
+            isUpdating = true;
+            hideMessages();
+
+            try {
+                await deleteTx(id);
+                txs = txs.filter(t => t.id !== id);
+                render();
+                showSuccess('Transaction deleted successfully!');
+            } catch (error) {
+                showError(error.message || 'Failed to delete transaction');
+            } finally {
+                isUpdating = false;
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showError(message) {
+            errorEl.textContent = message;
+            errorEl.style.display = 'block';
+            setTimeout(hideMessages, 5000);
+        }
+
+        function showSuccess(message) {
+            successEl.textContent = message;
+            successEl.style.display = 'block';
+            setTimeout(hideMessages, 3000);
+        }
+
+        function hideMessages() {
+            errorEl.style.display = 'none';
+            successEl.style.display = 'none';
+        }
+
+        // Initialize
+        loadTransactions();
+
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js');
+        }
+    </script>
+</body>
+</html>
